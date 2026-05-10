@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trader OS · Mateo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #04060d;
+    --bg: #070b16;
+    --bg-card: #0d1424;
+    --bg-card-hover: #131c34;
+    --border: #1a2540;
+    --border-hot: #2a3a60;
+    --baby: #89D2EC;
+    --baby-bright: #B5E3F2;
+    --baby-glow: rgba(137, 210, 236, 0.35);
+    --baby-soft: rgba(137, 210, 236, 0.08);
+    --text: #E8F1FA;
+    --text-soft: #94A6BD;
+    --text-muted: #5B6B85;
+    --green: #34D399;
+    --green-glow: rgba(52, 211, 153, 0.3);
+    --red: #F87171;
+    --red-glow: rgba(248, 113, 113, 0.3);
+    --amber: #FBBF24;
+    --amber-glow: rgba(251, 191, 36, 0.3);
+    --diamond: #7DD3FC;
+    --diamond-glow: rgba(125, 211, 252, 0.6);
+    --purple: #A78BFA;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg-deep); }
+  body {
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+    color: var(--text);
+    padding: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at top, rgba(137,210,236,0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(167,139,250,0.05), transparent 50%),
+      var(--bg-deep);
+    background-attachment: fixed;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .container { max-width: 760px; margin: 0 auto; padding: 16px; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* HUD */
+  .hud {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg) 100%);
+    border: 1px solid var(--border-hot);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hud::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--baby), transparent);
+    opacity: 0.6;
+  }
+  .hud-row {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; margin-bottom: 12px;
+  }
+  .player { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--baby) 0%, var(--purple) 100%);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; color: var(--bg-deep);
+    box-shadow: 0 0 20px var(--baby-glow);
+  }
+  .player-info .name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .player-info .rank {
+    font-size: 12px; color: var(--baby);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    display: flex; align-items: center; gap: 4px;
+    font-weight: 600;
+  }
+  .diamond-display {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--baby-soft);
+    border: 1px solid var(--border-hot);
+    padding: 8px 14px;
+    border-radius: 12px;
+    box-shadow: inset 0 0 20px rgba(137,210,236,0.05);
+  }
+  .diamond-icon {
+    font-size: 18px;
+    filter: drop-shadow(0 0 8px var(--diamond-glow));
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 100% { filter: drop-shadow(0 0 6px var(--diamond-glow)); }
+    50% { filter: drop-shadow(0 0 14px var(--diamond-glow)); }
+  }
+  .diamond-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px; font-weight: 700;
+    color: var(--baby-bright);
+    font-variant-numeric: tabular-nums;
+  }
+  .xp-bar {
+    height: 6px; background: var(--bg-deep);
+    border-radius: 4px; overflow: hidden; margin-top: 8px;
+    border: 1px solid var(--border);
+  }
+  .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--baby) 0%, var(--baby-bright) 100%);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px var(--baby-glow);
+  }
+  .xp-text {
+    font-size: 11px; color: var(--text-muted);
+    text-align: right; margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .streak-row {
+    display: grid; grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 8px; margin-top: 12px;
+  }
+  .streak {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .streak-icon { font-size: 16px; }
+  .streak-info { flex: 1; min-width: 0; }
+  .streak-info .label {
+    font-size: 9px; text-transform: uppercase;
+    color: var(--text-muted); letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .streak-info .val {
+    font-size: 14px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .streak.fire .val { color: var(--amber); }
+  .streak.shield .val { color: var(--baby); }
+
+  .slots { display: flex; gap: 6px; margin-top: 4px; }
+  .slot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--border-hot);
+    background: transparent;
+    transition: all 0.3s;
+  }
+  .slot.filled {
+    background: linear-gradient(135deg, var(--baby) 0%, var(--baby-bright) 100%);
+    border-color: var(--baby);
+    box-shadow: 0 0 8px var(--baby-glow);
+  }
+  .slot.locked {
+    background: linear-gradient(135deg, var(--red) 0%, #E04545 100%);
+    border-color: var(--red);
+    box-shadow: 0 0 8px var(--red-glow);
+  }
+
+  /* TABS */
+  .tabs {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    background: var(--bg-card);
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .tab {
+    padding: 10px 8px; border-radius: 10px; border: none;
+    background: transparent; color: var(--text-muted);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; font-family: inherit;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .tab.active {
+    background: linear-gradient(180deg, var(--bg-card-hover) 0%, var(--bg-card) 100%);
+    color: var(--baby-bright);
+    box-shadow: 0 0 15px var(--baby-soft), inset 0 0 0 1px var(--border-hot);
+  }
+  .tab:hover:not(.active) { color: var(--text); }
+  .panel { display: none; animation: fadeIn 0.3s; }
+  .panel.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+  .card:hover { border-color: var(--border-hot); }
+  .card-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-soft); font-weight: 700;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .req {
+    background: linear-gradient(135deg, var(--red) 0%, #C04040 100%);
+    color: white; font-size: 9px;
+    padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.06em; font-weight: 700;
+    box-shadow: 0 0 10px var(--red-glow);
+  }
+  .reward {
+    margin-left: auto;
+    font-size: 11px; color: var(--diamond);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 3px;
+  }
+
+  /* PILLS */
+  .pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    padding: 8px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg-deep);
+    color: var(--text-soft);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; user-select: none;
+    font-family: inherit;
+  }
+  .pill:hover { border-color: var(--baby); color: var(--text); transform: translateY(-1px); }
+  .pill.active {
+    background: linear-gradient(180deg, rgba(137,210,236,0.2) 0%, rgba(137,210,236,0.08) 100%);
+    border-color: var(--baby);
+    color: var(--baby-bright);
+    box-shadow: 0 0 15px var(--baby-soft), inset 0 0 8px rgba(137,210,236,0.1);
+  }
+  .pill.ev-180.active { box-shadow: 0 0 15px rgba(167,139,250,0.4); border-color: var(--purple); color: #DDD0FF; background: linear-gradient(180deg, rgba(167,139,250,0.2), rgba(167,139,250,0.08)); }
+  .pill.ev-cc.active { box-shadow: 0 0 15px var(--baby-glow); border-color: var(--baby); }
+  .pill.ev-tb.active { box-shadow: 0 0 15px rgba(251,191,36,0.4); border-color: var(--amber); color: #FFE9A8; background: linear-gradient(180deg, rgba(251,191,36,0.2), rgba(251,191,36,0.08)); }
+  .pill.long.active { box-shadow: 0 0 15px var(--green-glow); border-color: var(--green); color: #A7F3D0; background: linear-gradient(180deg, rgba(52,211,153,0.2), rgba(52,211,153,0.08)); }
+  .pill.short.active { box-shadow: 0 0 15px var(--red-glow); border-color: var(--red); color: #FECACA; background: linear-gradient(180deg, rgba(248,113,113,0.2), rgba(248,113,113,0.08)); }
+  .pill.ob-up.active { box-shadow: 0 0 15px var(--green-glow); border-color: var(--green); color: #A7F3D0; background: linear-gradient(180deg, rgba(52,211,153,0.2), rgba(52,211,153,0.08)); }
+  .pill.ob-down.active { box-shadow: 0 0 15px var(--red-glow); border-color: var(--red); color: #FECACA; background: linear-gradient(180deg, rgba(248,113,113,0.2), rgba(248,113,113,0.08)); }
+
+  /* Emotion pills */
+  .pill.emo-calm.active { box-shadow: 0 0 15px var(--green-glow); border-color: var(--green); color: #A7F3D0; background: linear-gradient(180deg, rgba(52,211,153,0.2), rgba(52,211,153,0.08)); }
+  .pill.emo-tired.active { box-shadow: 0 0 15px var(--amber-glow); border-color: var(--amber); color: #FFE9A8; background: linear-gradient(180deg, rgba(251,191,36,0.2), rgba(251,191,36,0.08)); }
+  .pill.emo-fomo.active { box-shadow: 0 0 18px rgba(248,113,113,0.5); border-color: var(--red); color: #FECACA; background: linear-gradient(180deg, rgba(248,113,113,0.25), rgba(248,113,113,0.1)); animation: warningPulse 1.5s ease-in-out infinite; }
+  .pill.emo-tilt.active { box-shadow: 0 0 18px rgba(248,113,113,0.6); border-color: #EF4444; color: #FCA5A5; background: linear-gradient(180deg, rgba(239,68,68,0.3), rgba(127,29,29,0.2)); animation: warningPulse 1.5s ease-in-out infinite; }
+  @keyframes warningPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(248,113,113,0.4); }
+    50% { box-shadow: 0 0 25px rgba(248,113,113,0.7); }
+  }
+
+  /* INPUTS */
+  textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg-deep); color: var(--text);
+    transition: all 0.15s;
+    resize: vertical; min-height: 60px;
+    font-weight: 500;
+  }
+  textarea:focus {
+    outline: none; border-color: var(--baby);
+    box-shadow: 0 0 0 3px var(--baby-soft), inset 0 0 8px rgba(137,210,236,0.05);
+  }
+  textarea::placeholder { color: var(--text-muted); }
+
+  /* DECISION */
+  .decision {
+    padding: 24px; border-radius: 16px;
+    text-align: center; margin: 16px 0;
+    transition: all 0.3s; position: relative; overflow: hidden;
+  }
+  .decision.idle {
+    background: var(--bg-card);
+    border: 2px dashed var(--border);
+  }
+  .decision.go {
+    background: radial-gradient(ellipse at center, rgba(52,211,153,0.2) 0%, var(--bg-card) 100%);
+    border: 2px solid var(--green);
+    box-shadow: 0 0 40px var(--green-glow), inset 0 0 20px rgba(52,211,153,0.1);
+    animation: pulseGo 2s ease-in-out infinite;
+  }
+  @keyframes pulseGo {
+    0%, 100% { box-shadow: 0 0 40px var(--green-glow), inset 0 0 20px rgba(52,211,153,0.1); }
+    50% { box-shadow: 0 0 60px var(--green-glow), inset 0 0 30px rgba(52,211,153,0.2); }
+  }
+  .decision.nogo {
+    background: radial-gradient(ellipse at center, rgba(248,113,113,0.15) 0%, var(--bg-card) 100%);
+    border: 2px solid var(--red);
+    box-shadow: 0 0 30px var(--red-glow);
+  }
+  .decision.locked {
+    background: radial-gradient(ellipse at center, rgba(167,139,250,0.15) 0%, var(--bg-card) 100%);
+    border: 2px solid var(--purple);
+    box-shadow: 0 0 30px rgba(167,139,250,0.3);
+  }
+  .decision.emolock {
+    background: radial-gradient(ellipse at center, rgba(248,113,113,0.2) 0%, var(--bg-card) 100%);
+    border: 2px solid var(--red);
+    box-shadow: 0 0 50px var(--red-glow);
+    animation: emoPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes emoPulse {
+    0%, 100% { box-shadow: 0 0 40px var(--red-glow); }
+    50% { box-shadow: 0 0 70px rgba(248,113,113,0.6); }
+  }
+  .decision-label {
+    font-size: 36px; font-weight: 800; letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .decision.go .decision-label { color: var(--green); text-shadow: 0 0 20px var(--green-glow); }
+  .decision.nogo .decision-label { color: var(--red); text-shadow: 0 0 20px var(--red-glow); }
+  .decision.locked .decision-label { color: var(--purple); text-shadow: 0 0 20px rgba(167,139,250,0.4); font-size: 26px; }
+  .decision.emolock .decision-label { color: var(--red); text-shadow: 0 0 20px var(--red-glow); font-size: 26px; }
+  .decision.idle .decision-label { color: var(--text-muted); }
+  .decision-reason { font-size: 13px; color: var(--text-soft); min-height: 18px; }
+  .decision-reward {
+    margin-top: 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(125,211,252,0.1);
+    border: 1px solid var(--baby);
+    padding: 6px 12px; border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700;
+    color: var(--diamond);
+  }
+
+  /* BUTTONS */
+  .btn {
+    padding: 12px 18px; border-radius: 10px; border: none;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .btn-primary {
+    background: linear-gradient(180deg, var(--baby) 0%, #5DB8DD 100%);
+    color: var(--bg-deep);
+    width: 100%; margin-top: 10px;
+    box-shadow: 0 0 25px var(--baby-glow), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 30px var(--baby-glow), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .btn-primary:disabled {
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .btn-skip {
+    background: transparent; color: var(--text-soft);
+    border: 1px solid var(--border);
+    width: 100%; margin-top: 8px;
+  }
+  .btn-skip:hover {
+    border-color: var(--baby); color: var(--baby);
+    background: var(--baby-soft);
+  }
+  .btn-skip.boosted {
+    border-color: var(--green); color: var(--green);
+    background: rgba(52,211,153,0.08);
+    box-shadow: 0 0 20px var(--green-glow);
+  }
+  .btn-skip.boosted:hover {
+    background: rgba(52,211,153,0.15);
+  }
+  .btn-ghost {
+    background: transparent; color: var(--text-soft);
+    border: 1px solid var(--border);
+    text-transform: none; letter-spacing: 0;
+    font-weight: 600;
+  }
+  .btn-ghost:hover { background: var(--bg-card-hover); color: var(--text); border-color: var(--border-hot); }
+  .btn-sm { padding: 6px 12px; font-size: 11px; }
+
+  /* JOURNAL */
+  .journal-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: all 0.15s;
+  }
+  .journal-row:hover { border-color: var(--border-hot); }
+  .journal-row.win { border-left-color: var(--green); box-shadow: -2px 0 12px var(--green-glow); }
+  .journal-row.loss { border-left-color: var(--red); }
+  .journal-row.be { border-left-color: var(--amber); }
+  .journal-row.pending { border-left-color: var(--text-muted); }
+  .journal-head {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    flex-wrap: wrap; gap: 6px;
+  }
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 6px;
+    font-size: 10px; font-weight: 700; margin-right: 4px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-asset { background: var(--bg-deep); color: var(--baby-bright); border: 1px solid var(--border-hot); }
+  .badge-long { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .badge-short { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .badge-event { background: var(--baby-soft); color: var(--baby); border: 1px solid var(--baby); }
+  .badge-skip { background: rgba(167,139,250,0.15); color: var(--purple); border: 1px solid var(--purple); }
+  .badge-ob { background: var(--bg-deep); color: var(--text-soft); border: 1px solid var(--border); }
+  .badge-emo-calm { background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .badge-emo-tired { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+  .badge-emo-fomo { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .badge-emo-tilt { background: rgba(239,68,68,0.18); color: #FCA5A5; border: 1px solid #EF4444; }
+  .journal-meta {
+    font-size: 12px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .journal-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .diamond-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700;
+  }
+  .diamond-tag.pos { background: var(--baby-soft); color: var(--baby-bright); border: 1px solid var(--baby); }
+  .diamond-tag.neg { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid var(--red); }
+  .diamond-tag.zero { background: var(--bg-deep); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* STATS */
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--baby-soft), transparent);
+  }
+  .stat-label {
+    font-size: 10px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+  }
+  .stat-value {
+    font-size: 26px; font-weight: 700; margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--baby-bright);
+  }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+
+  .empty {
+    text-align: center; padding: 40px 16px;
+    color: var(--text-muted); font-size: 13px;
+  }
+
+  .filter-bar {
+    display: flex; gap: 6px; margin-bottom: 14px;
+    overflow-x: auto; padding-bottom: 4px;
+  }
+  .filter-bar::-webkit-scrollbar { height: 4px; }
+  .filter-bar::-webkit-scrollbar-thumb { background: var(--border-hot); border-radius: 2px; }
+  .filter-bar .pill { white-space: nowrap; font-size: 11px; padding: 6px 12px; }
+
+  .alert {
+    background: rgba(251,191,36,0.08);
+    border-left: 3px solid var(--amber);
+    padding: 8px 12px; border-radius: 6px;
+    font-size: 12px; color: #FCD581; margin-top: 10px;
+  }
+  .alert-danger {
+    background: rgba(248,113,113,0.1);
+    border-left-color: var(--red);
+    color: #FECACA;
+  }
+  .small-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
+
+  /* ACHIEVEMENTS */
+  .ach-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;
+  }
+  .ach {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .ach.locked { opacity: 0.4; filter: grayscale(0.8); }
+  .ach.unlocked {
+    border-color: var(--baby);
+    box-shadow: 0 0 20px var(--baby-soft);
+  }
+  .ach-icon {
+    font-size: 32px; margin-bottom: 8px;
+    filter: drop-shadow(0 0 8px var(--baby-glow));
+  }
+  .ach.locked .ach-icon { filter: none; }
+  .ach-name { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .ach-desc { font-size: 10px; color: var(--text-muted); line-height: 1.3; }
+  .ach-reward {
+    margin-top: 6px;
+    font-size: 10px; color: var(--diamond);
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  }
+
+  /* EFFECTS */
+  .diamond-burst {
+    position: fixed;
+    pointer-events: none;
+    font-size: 24px;
+    z-index: 1000;
+    animation: burst 1.2s ease-out forwards;
+    filter: drop-shadow(0 0 8px var(--diamond-glow));
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+  @keyframes burst {
+    0% { opacity: 1; transform: translateY(0) scale(0.5); }
+    50% { opacity: 1; transform: translateY(-60px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-120px) scale(0.8); }
+  }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-card); border: 1px solid var(--baby);
+    box-shadow: 0 0 30px var(--baby-glow);
+    padding: 12px 20px; border-radius: 12px;
+    color: var(--baby-bright); font-weight: 600;
+    z-index: 1000;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+    display: flex; align-items: center; gap: 10px;
+    max-width: 90vw;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HUD -->
+<div class="hud" id="hud">
+  <div class="hud-row">
+    <div class="player">
+      <div class="avatar">M</div>
+      <div class="player-info">
+        <div class="name">Mateo</div>
+        <div class="rank" id="rank-display">◆ Novato</div>
+      </div>
+    </div>
+    <div class="diamond-display">
+      <span class="diamond-icon">💎</span>
+      <span class="diamond-count" id="diamond-count">0</span>
+    </div>
+  </div>
+  <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width: 0%"></div></div>
+  <div class="xp-text" id="xp-text">0 / 100 al siguiente rango</div>
+  <div class="streak-row">
+    <div class="streak fire">
+      <span class="streak-icon">🔥</span>
+      <div class="streak-info">
+        <div class="label">Win Streak</div>
+        <div class="val" id="win-streak">0</div>
+      </div>
+    </div>
+    <div class="streak shield">
+      <span class="streak-icon">🛡️</span>
+      <div class="streak-info">
+        <div class="label">Disciplina</div>
+        <div class="val" id="disc-streak">0</div>
+      </div>
+    </div>
+    <div class="streak">
+      <span class="streak-icon">📅</span>
+      <div class="streak-info">
+        <div class="label">Trades Hoy</div>
+        <div class="slots" id="day-slots">
+          <div class="slot"></div>
+          <div class="slot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" data-tab="checklist">Entrada</button>
+  <button class="tab" data-tab="journal">Journal</button>
+  <button class="tab" data-tab="stats">Stats</button>
+  <button class="tab" data-tab="logros">Logros</button>
+</div>
+
+<!-- CHECKLIST PANEL -->
+<div class="panel active" id="panel-checklist">
+
+  <div class="card">
+    <div class="card-title">
+      Estado Mental <span class="req">REQ</span>
+      <span class="reward">+2 💎 si Calmado</span>
+    </div>
+    <div class="pill-group" id="emotion-group">
+      <div class="pill emo-calm" data-emotion="CALM" style="flex:1; text-align:center;">🧘 Calmado</div>
+      <div class="pill emo-tired" data-emotion="TIRED" style="flex:1; text-align:center;">😴 Cansado</div>
+      <div class="pill emo-fomo" data-emotion="FOMO" style="flex:1; text-align:center;">🔥 FOMO</div>
+      <div class="pill emo-tilt" data-emotion="TILT" style="flex:1; text-align:center;">💢 Tilt</div>
+    </div>
+    <div id="emo-warning" class="alert alert-danger" style="display:none;">
+      🚫 Tu cabeza no está lista para tradear. Cierra el chart, respira, sal a caminar. Marca SKIP por +5 💎.
+    </div>
+    <div id="emo-tired-warning" class="alert" style="display:none;">
+      ⚠ Estás cansado. Procede solo con setups muy claros (PERFECT). Si dudas, mejor SKIP.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Activo & Dirección</div>
+    <div class="pill-group" id="asset-group" style="margin-bottom: 10px;">
+      <div class="pill" data-asset="ES">ES / SPX</div>
+      <div class="pill" data-asset="NQ">NQ / NDX</div>
+      <div class="pill" data-asset="BTC">BTC</div>
+      <div class="pill" data-asset="OTRO">Otro</div>
+    </div>
+    <div class="pill-group" id="dir-group">
+      <div class="pill long" data-dir="LONG" style="flex:1; text-align:center;">▲ LONG</div>
+      <div class="pill short" data-dir="SHORT" style="flex:1; text-align:center;">▼ SHORT</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      Evento <span class="req">REQ</span>
+      <span class="reward">+3 💎</span>
+    </div>
+    <div class="pill-group" id="event-group">
+      <div class="pill ev-180" data-event="180">180 Reversal</div>
+      <div class="pill ev-cc" data-event="CC">Color Change</div>
+      <div class="pill ev-tb" data-event="TB">Tail Bar</div>
+    </div>
+    <div class="small-note">Moving Average donde ocurre · +1 💎</div>
+    <div class="pill-group" id="ma-group" style="margin-top: 6px;">
+      <div class="pill" data-ma="8MA">8MA</div>
+      <div class="pill" data-ma="20MA">20MA</div>
+      <div class="pill" data-ma="200MA">200MA</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      Orderblock <span class="req">REQ</span>
+      <span class="reward">+2 💎</span>
+    </div>
+    <div class="pill-group" id="ob-group">
+      <div class="pill ob-up" data-ob="UP" style="flex:1; text-align:center;">▲ OB Arriba (TP Long)</div>
+      <div class="pill ob-down" data-ob="DOWN" style="flex:1; text-align:center;">▼ OB Abajo (TP Short)</div>
+    </div>
+    <div class="small-note">El OB es tu zona objetivo / target del trade</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Notas</div>
+    <textarea id="notes" placeholder="Contexto, HTF bias, news, lo que sea..."></textarea>
+  </div>
+
+  <div class="decision idle" id="decision">
+    <div class="decision-label" id="decision-label">— — —</div>
+    <div class="decision-reason" id="decision-reason">Completa el checklist</div>
+    <div class="decision-reward" id="decision-reward" style="display:none;"></div>
+  </div>
+
+  <button class="btn btn-primary" id="save-btn" onclick="saveTrade()" disabled>Ejecutar Trade · Guardar</button>
+  <button class="btn btn-skip" id="skip-btn" onclick="logSkip()">Setup no válido — Saltar (+2 💎)</button>
+
+</div>
+
+<!-- JOURNAL PANEL -->
+<div class="panel" id="panel-journal">
+  <div class="filter-bar" id="filter-bar">
+    <div class="pill active" data-filter="ALL">Todos</div>
+    <div class="pill" data-filter="ES">ES</div>
+    <div class="pill" data-filter="NQ">NQ</div>
+    <div class="pill" data-filter="BTC">BTC</div>
+    <div class="pill" data-filter="PENDING">Pendientes</div>
+    <div class="pill" data-filter="WIN">Wins</div>
+    <div class="pill" data-filter="LOSS">Losses</div>
+    <div class="pill" data-filter="SKIP">Saltados</div>
+  </div>
+  <div id="journal-list"></div>
+</div>
+
+<!-- STATS PANEL -->
+<div class="panel" id="panel-stats">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Trades</div><div class="stat-value" id="stat-total">0</div></div>
+    <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" id="stat-wr">—</div></div>
+    <div class="stat-card"><div class="stat-label">Skips Disciplinados</div><div class="stat-value" id="stat-skips">0</div></div>
+    <div class="stat-card"><div class="stat-label">Total 💎</div><div class="stat-value" id="stat-diamonds">0</div></div>
+  </div>
+  <div class="card"><div class="card-title">Win Rate por Evento</div><canvas id="chart-event" height="160"></canvas></div>
+  <div class="card"><div class="card-title">Win Rate por MA</div><canvas id="chart-ma" height="160"></canvas></div>
+  <div class="card"><div class="card-title">Win Rate por Estado Mental</div><canvas id="chart-emotion" height="160"></canvas></div>
+</div>
+
+<!-- LOGROS PANEL -->
+<div class="panel" id="panel-logros">
+  <div class="ach-grid" id="ach-grid"></div>
+</div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'mateo_journal_v3';
+const STATE_KEY = 'mateo_state_v3';
+const META_KEY = 'mateo_meta_v3';
+const DAILY_LIMIT = 2;
+
+let state = { asset: null, dir: null, event: null, ma: null, ob: null, emotion: null };
+let activeFilter = 'ALL';
+let charts = {};
+
+const RANKS = [
+  { name: 'Novato',   icon: '◆',   min: 0,    color: '#94A6BD' },
+  { name: 'Aprendiz', icon: '◆',   min: 100,  color: '#89D2EC' },
+  { name: 'Trader',   icon: '◆◆',  min: 300,  color: '#7DD3FC' },
+  { name: 'Pro',      icon: '◆◆◆', min: 700,  color: '#A78BFA' },
+  { name: 'Maestro',  icon: '★',   min: 1500, color: '#FBBF24' },
+  { name: 'Leyenda',  icon: '👑',  min: 3000, color: '#F472B6' },
+];
+
+function getRank(diamonds) {
+  let current = RANKS[0], next = RANKS[1] || null;
+  for (let i = 0; i < RANKS.length; i++) {
+    if (diamonds >= RANKS[i].min) {
+      current = RANKS[i];
+      next = RANKS[i+1] || null;
+    }
+  }
+  return { current, next };
+}
+
+const ACHIEVEMENTS = [
+  { id: 'first_go',    icon: '🎯', name: 'Primer GO',       desc: 'Ejecuta tu primer trade GO',         reward: 5,   check: m => m.totalTrades >= 1 },
+  { id: 'first_win',   icon: '⚔️', name: 'Primera Sangre',   desc: 'Cierra tu primer trade ganador',     reward: 10,  check: m => m.totalWins >= 1 },
+  { id: 'streak3',     icon: '🔥', name: 'En Llamas',         desc: '3 wins seguidos',                    reward: 15,  check: m => m.bestWinStreak >= 3 },
+  { id: 'streak5',     icon: '⚡', name: 'Imparable',         desc: '5 wins seguidos',                    reward: 30,  check: m => m.bestWinStreak >= 5 },
+  { id: 'perfect',     icon: '💎', name: 'Setup Perfecto',    desc: 'GO con todos los campos llenos',     reward: 10,  check: m => m.perfectSetups >= 1 },
+  { id: 'discipline10',icon: '🛡️', name: 'Disciplina',         desc: '10 setups malos saltados',           reward: 20,  check: m => m.totalSkips >= 10 },
+  { id: 'analyst',     icon: '📊', name: 'Analista',          desc: '25 trades loggeados',                reward: 25,  check: m => m.totalTrades >= 25 },
+  { id: 'eye',         icon: '👁️', name: 'El Ojo',             desc: '50 trades con resultado',            reward: 50,  check: m => (m.totalWins + m.totalLosses) >= 50 },
+  { id: 'pro_rank',    icon: '🏔️', name: 'Cumbre',            desc: 'Alcanza rango Pro',                  reward: 100, check: m => m.diamonds >= 700 },
+  { id: 'legend',      icon: '👑', name: 'Leyenda',           desc: 'Alcanza rango Leyenda',              reward: 500, check: m => m.diamonds >= 3000 },
+  { id: 'patience',    icon: '🧘', name: 'Paciencia',         desc: '5 días respetando límite de 2',      reward: 50,  check: m => m.cleanDays >= 5 },
+  { id: 'monk',        icon: '🌅', name: 'Monje del Mercado', desc: '1 solo trade en el día (calidad)',   reward: 15,  check: m => m.singleTradeDays >= 1 },
+  { id: 'zen',         icon: '☯️', name: 'Zen Master',        desc: '10 trades en estado Calmado',        reward: 40,  check: m => m.calmTrades >= 10 },
+  { id: 'know_self',   icon: '🪞', name: 'Conoce a tu Enemigo', desc: 'Salta 5 trades por FOMO/Tilt',     reward: 30,  check: m => m.emoSkips >= 5 },
+];
+
+function loadMeta() {
+  try {
+    const m = JSON.parse(localStorage.getItem(META_KEY));
+    return { ...defaultMeta(), ...(m || {}) };
+  } catch { return defaultMeta(); }
+}
+function defaultMeta() {
+  return {
+    diamonds: 0,
+    totalTrades: 0, totalWins: 0, totalLosses: 0, totalBE: 0,
+    totalSkips: 0, perfectSetups: 0,
+    calmTrades: 0, emoSkips: 0,
+    winStreak: 0, bestWinStreak: 0,
+    discStreak: 0, bestDiscStreak: 0,
+    cleanDays: 0, singleTradeDays: 0,
+    tradesByDate: {},
+    rewardedDays: [],
+    unlocked: [],
+  };
+}
+function saveMeta(m) { localStorage.setItem(META_KEY, JSON.stringify(m)); }
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function tradesToday() {
+  const m = loadMeta();
+  return m.tradesByDate[todayStr()] || 0;
+}
+
+function calcSetupReward(s) {
+  let d = 0;
+  if (s.event) d += 3;
+  if (s.ma) d += 1;
+  if (s.ob) d += 2;
+  if (s.emotion === 'CALM') d += 2;
+  return d;
+}
+function isPerfectSetup(s) {
+  return s.event && s.ma && s.ob && s.dir && s.emotion === 'CALM';
+}
+function isEmotionBlocking(emotion) {
+  return emotion === 'FOMO' || emotion === 'TILT';
+}
+
+function setupPills(groupId, key) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const value = pill.dataset[key];
+      group.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      if (state[key] === value) { state[key] = null; }
+      else { pill.classList.add('active'); state[key] = value; }
+      saveState();
+      recalc();
+    });
+  });
+}
+setupPills('asset-group', 'asset');
+setupPills('dir-group', 'dir');
+setupPills('event-group', 'event');
+setupPills('ma-group', 'ma');
+setupPills('ob-group', 'ob');
+setupPills('emotion-group', 'emotion');
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'journal') renderJournal();
+    if (tab.dataset.tab === 'stats') renderStats();
+    if (tab.dataset.tab === 'logros') renderAchievements();
+  });
+});
+
+document.querySelectorAll('#filter-bar .pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('#filter-bar .pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    activeFilter = pill.dataset.filter;
+    renderJournal();
+  });
+});
+
+function recalc() {
+  const decisionEl = document.getElementById('decision');
+  const labelEl = document.getElementById('decision-label');
+  const reasonEl = document.getElementById('decision-reason');
+  const rewardEl = document.getElementById('decision-reward');
+  const saveBtn = document.getElementById('save-btn');
+  const skipBtn = document.getElementById('skip-btn');
+
+  decisionEl.classList.remove('go', 'nogo', 'idle', 'locked', 'emolock');
+  skipBtn.classList.remove('boosted');
+
+  // Update emo warnings
+  document.getElementById('emo-warning').style.display = isEmotionBlocking(state.emotion) ? 'block' : 'none';
+  document.getElementById('emo-tired-warning').style.display = state.emotion === 'TIRED' ? 'block' : 'none';
+
+  // Boost skip button if emotion is bad
+  if (isEmotionBlocking(state.emotion)) {
+    skipBtn.classList.add('boosted');
+    skipBtn.textContent = '🛡️ Cancelar por estado emocional (+5 💎)';
+  } else {
+    skipBtn.textContent = 'Setup no válido — Saltar (+2 💎)';
+  }
+
+  // EMO LOCK (highest priority block)
+  if (isEmotionBlocking(state.emotion)) {
+    decisionEl.classList.add('emolock');
+    labelEl.textContent = state.emotion === 'FOMO' ? '🔥 FOMO DETECTADO' : '💢 TILT DETECTADO';
+    reasonEl.textContent = state.emotion === 'FOMO'
+      ? 'Estás persiguiendo precio. Tu cabeza no quiere ver el setup, quiere acción. NO entres.'
+      : 'Estás emocional. Cualquier trade ahora es revenge. Cierra el chart 30 minutos.';
+    rewardEl.style.display = 'none';
+    saveBtn.disabled = true;
+    return;
+  }
+
+  // Daily limit check
+  const todayCount = tradesToday();
+  if (todayCount >= DAILY_LIMIT) {
+    decisionEl.classList.add('locked');
+    labelEl.textContent = '🔒 LÍMITE DIARIO';
+    reasonEl.textContent = `Ya tomaste ${todayCount} trades hoy. La paciencia es tu edge. Vuelve mañana.`;
+    rewardEl.style.display = 'none';
+    saveBtn.disabled = true;
+    return;
+  }
+
+  const reasons = [];
+  if (!state.emotion) reasons.push('falta estado mental');
+  if (!state.event) reasons.push('falta evento');
+  if (!state.dir) reasons.push('falta dirección');
+  if (!state.ob) reasons.push('falta OB');
+
+  let mismatch = false;
+  if (state.dir === 'LONG' && state.ob === 'DOWN') mismatch = true;
+  if (state.dir === 'SHORT' && state.ob === 'UP') mismatch = true;
+  if (mismatch) reasons.push('OB no coincide con dirección');
+
+  const formIsEmpty = !state.event && !state.dir && !state.ob && !state.emotion;
+
+  if (reasons.length === 0) {
+    decisionEl.classList.add('go');
+    labelEl.textContent = 'GO ✓';
+    let extras = [];
+    if (!state.ma) extras.push('sin MA');
+    if (state.emotion === 'TIRED') extras.push('cansado');
+    reasonEl.textContent = extras.length ? `Avisos: ${extras.join(', ')}` : 'Setup válido. Ejecuta con plan.';
+    saveBtn.disabled = false;
+    const reward = calcSetupReward(state) + (isPerfectSetup(state) ? 5 : 0);
+    rewardEl.style.display = 'inline-flex';
+    rewardEl.innerHTML = `Recompensa: <strong>+${reward} 💎</strong>${isPerfectSetup(state) ? ' <span style="color:var(--amber)">PERFECT</span>' : ''}`;
+  } else if (formIsEmpty) {
+    decisionEl.classList.add('idle');
+    labelEl.textContent = '— — —';
+    reasonEl.textContent = 'Completa el checklist';
+    rewardEl.style.display = 'none';
+    saveBtn.disabled = true;
+  } else {
+    decisionEl.classList.add('nogo');
+    labelEl.textContent = 'NO GO ✗';
+    reasonEl.textContent = 'Falta: ' + reasons.join(' · ');
+    rewardEl.style.display = 'none';
+    saveBtn.disabled = true;
+  }
+}
+
+function saveTrade() {
+  const today = todayStr();
+  const meta = loadMeta();
+  const todayCount = meta.tradesByDate[today] || 0;
+  if (todayCount >= DAILY_LIMIT) {
+    toast('🔒 Ya alcanzaste tu límite de hoy. Mañana es otro día.');
+    return;
+  }
+  if (isEmotionBlocking(state.emotion)) {
+    toast('🚫 Bloqueado por estado emocional. Marca SKIP por +5 💎.');
+    return;
+  }
+
+  const perfect = isPerfectSetup(state);
+  const baseReward = calcSetupReward(state);
+  const totalReward = baseReward + (perfect ? 5 : 0);
+
+  const trade = {
+    id: Date.now(),
+    type: 'TRADE',
+    date: new Date().toISOString(),
+    asset: state.asset || 'OTRO',
+    dir: state.dir, event: state.event, ma: state.ma, ob: state.ob,
+    emotion: state.emotion,
+    notes: document.getElementById('notes').value.trim(),
+    result: null,
+    diamondsEarned: totalReward,
+    perfect,
+  };
+
+  const journal = loadJournal();
+  journal.unshift(trade);
+  saveJournal(journal);
+
+  meta.diamonds += totalReward;
+  meta.totalTrades += 1;
+  if (perfect) meta.perfectSetups += 1;
+  if (state.emotion === 'CALM') meta.calmTrades += 1;
+  meta.discStreak += 1;
+  meta.bestDiscStreak = Math.max(meta.bestDiscStreak, meta.discStreak);
+  meta.tradesByDate[today] = todayCount + 1;
+  saveMeta(meta);
+
+  burst(`+${totalReward} 💎`);
+
+  if (meta.tradesByDate[today] === DAILY_LIMIT && !meta.rewardedDays.includes(today)) {
+    setTimeout(() => grantDailyBonus(today), 800);
+  }
+
+  checkAchievements();
+  renderHud();
+  resetForm();
+  document.querySelector('.tab[data-tab="journal"]').click();
+}
+
+function grantDailyBonus(date) {
+  const meta = loadMeta();
+  if (meta.rewardedDays.includes(date)) return;
+  meta.rewardedDays.push(date);
+  meta.cleanDays += 1;
+  const bonus = 5;
+  meta.diamonds += bonus;
+  saveMeta(meta);
+  toast(`🛡️ Día disciplinado completo · Bonus +${bonus} 💎`);
+  burst(`+${bonus} 💎 BONUS`);
+  checkAchievements();
+  renderHud();
+}
+
+function logSkip() {
+  const isEmoSkip = isEmotionBlocking(state.emotion);
+  const reward = isEmoSkip ? 5 : 2;
+  const msg = isEmoSkip
+    ? `¿Cancelas el trade por estar en ${state.emotion}? Esto es de las decisiones más difíciles y más valiosas.\n\nGanas +${reward} 💎.`
+    : `¿Confirmas que rechazas este setup por no cumplir tu estrategia?\n\nGanas +${reward} 💎 por la disciplina.`;
+  if (!confirm(msg)) return;
+
+  const trade = {
+    id: Date.now(),
+    type: 'SKIP',
+    date: new Date().toISOString(),
+    asset: state.asset || 'OTRO',
+    dir: state.dir, event: state.event, ma: state.ma, ob: state.ob,
+    emotion: state.emotion,
+    notes: document.getElementById('notes').value.trim() || (isEmoSkip ? `Cancelado por ${state.emotion}` : 'Setup no cumplía criterios'),
+    diamondsEarned: reward,
+    emoSkip: isEmoSkip,
+  };
+
+  const journal = loadJournal();
+  journal.unshift(trade);
+  saveJournal(journal);
+
+  const meta = loadMeta();
+  meta.diamonds += reward;
+  meta.totalSkips += 1;
+  if (isEmoSkip) meta.emoSkips += 1;
+  meta.discStreak += 1;
+  meta.bestDiscStreak = Math.max(meta.bestDiscStreak, meta.discStreak);
+  saveMeta(meta);
+
+  burst(isEmoSkip ? `+${reward} 💎 GUERRERO` : `+${reward} 💎 Disciplina`);
+  if (isEmoSkip) toast('🪞 Conocer tu enemigo es ganarle. Bien hecho.');
+  checkAchievements();
+  renderHud();
+  resetForm();
+  document.querySelector('.tab[data-tab="journal"]').click();
+}
+
+function loadJournal() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function saveJournal(j) { localStorage.setItem(STORAGE_KEY, JSON.stringify(j)); }
+function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STATE_KEY));
+    if (s) state = { asset: null, dir: null, event: null, ma: null, ob: null, emotion: null, ...s };
+  } catch {}
+  ['asset','dir','event','ma','ob','emotion'].forEach(key => {
+    if (state[key]) {
+      const pill = document.querySelector(`[data-${key}="${state[key]}"]`);
+      if (pill) pill.classList.add('active');
+    }
+  });
+}
+
+function resetForm() {
+  state = { asset: null, dir: null, event: null, ma: null, ob: null, emotion: null };
+  document.querySelectorAll('.pill[data-asset], .pill[data-dir], .pill[data-event], .pill[data-ma], .pill[data-ob], .pill[data-emotion]')
+    .forEach(p => p.classList.remove('active'));
+  document.getElementById('notes').value = '';
+  saveState();
+  recalc();
+}
+
+function emotionBadge(e) {
+  if (!e) return '';
+  const map = {
+    CALM:  { cls: 'badge-emo-calm',  txt: '🧘 Calmado' },
+    TIRED: { cls: 'badge-emo-tired', txt: '😴 Cansado' },
+    FOMO:  { cls: 'badge-emo-fomo',  txt: '🔥 FOMO' },
+    TILT:  { cls: 'badge-emo-tilt',  txt: '💢 Tilt' },
+  };
+  const m = map[e];
+  if (!m) return '';
+  return `<span class="badge ${m.cls}">${m.txt}</span>`;
+}
+
+function renderJournal() {
+  const list = document.getElementById('journal-list');
+  let journal = loadJournal();
+
+  if (activeFilter !== 'ALL') {
+    journal = journal.filter(t => {
+      if (activeFilter === 'PENDING') return t.type === 'TRADE' && !t.result;
+      if (activeFilter === 'WIN') return t.result === 'WIN';
+      if (activeFilter === 'LOSS') return t.result === 'LOSS';
+      if (activeFilter === 'SKIP') return t.type === 'SKIP';
+      return t.asset === activeFilter;
+    });
+  }
+
+  if (!journal.length) {
+    list.innerHTML = '<div class="empty">Sin entradas en esta vista.</div>';
+    return;
+  }
+
+  list.innerHTML = journal.map(t => {
+    const date = new Date(t.date);
+    const dateStr = date.toLocaleDateString('es-CO', { month: 'short', day: '2-digit' }) + ' ' +
+                    date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+    if (t.type === 'SKIP') {
+      const skipLabel = t.emoSkip ? 'SKIP · GUERRERO' : 'SKIP · DISCIPLINA';
+      return `
+        <div class="journal-row" style="border-left-color: ${t.emoSkip ? 'var(--green)' : 'var(--purple)'};">
+          <div class="journal-head">
+            <div>
+              <span class="badge badge-skip">${skipLabel}</span>
+              ${emotionBadge(t.emotion)}
+              ${t.event ? `<span class="badge badge-event">${t.event}</span>` : ''}
+            </div>
+            <div class="diamond-tag pos">+${t.diamondsEarned} 💎</div>
+          </div>
+          <div class="journal-meta">${dateStr}</div>
+          ${t.notes ? `<div style="font-size:12px;color:var(--text-soft);margin-top:6px;">${escapeHtml(t.notes)}</div>` : ''}
+          <div class="journal-actions">
+            <button class="btn btn-ghost btn-sm" onclick="deleteTrade(${t.id})" style="margin-left:auto;">Borrar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    const cls = t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : t.result === 'BE' ? 'be' : 'pending';
+    const resultStr = t.result === 'WIN' ? '<span style="color:var(--green);font-weight:700;">WIN</span>' :
+                      t.result === 'LOSS' ? '<span style="color:var(--red);font-weight:700;">LOSS</span>' :
+                      t.result === 'BE' ? '<span style="color:var(--amber);font-weight:700;">BE</span>' :
+                      '<span style="color:var(--text-muted);font-size:12px;">pendiente</span>';
+
+    let dTag = '';
+    if (t.diamondsEarned !== undefined) {
+      const total = (t.diamondsEarned || 0) + (t.diamondsResult || 0);
+      const cls2 = total > 0 ? 'pos' : total < 0 ? 'neg' : 'zero';
+      dTag = `<div class="diamond-tag ${cls2}">${total>=0?'+':''}${total} 💎</div>`;
+    }
+
+    const obBadge = t.ob === 'UP' ? '▲ OB↑' : t.ob === 'DOWN' ? '▼ OB↓' : '';
+
+    return `
+      <div class="journal-row ${cls}">
+        <div class="journal-head">
+          <div>
+            <span class="badge badge-asset">${t.asset}</span>
+            <span class="badge badge-${t.dir.toLowerCase()}">${t.dir}</span>
+            <span class="badge badge-event">${t.event}${t.ma ? ' @' + t.ma : ''}</span>
+            ${obBadge ? `<span class="badge badge-ob">${obBadge}</span>` : ''}
+            ${emotionBadge(t.emotion)}
+            ${t.perfect ? '<span class="badge" style="background:rgba(251,191,36,0.15);color:var(--amber);border:1px solid var(--amber);">PERFECT</span>' : ''}
+          </div>
+          ${dTag}
+        </div>
+        <div class="journal-meta">${dateStr} · ${resultStr}</div>
+        ${t.notes ? `<div style="font-size:12px;color:var(--text-soft);margin-top:6px;">${escapeHtml(t.notes)}</div>` : ''}
+        <div class="journal-actions">
+          ${!t.result ? `
+            <button class="btn btn-ghost btn-sm" onclick="markResult(${t.id}, 'WIN')" style="color:var(--green); border-color: var(--green);">✓ Win</button>
+            <button class="btn btn-ghost btn-sm" onclick="markResult(${t.id}, 'LOSS')" style="color:var(--red); border-color: var(--red);">✗ Loss</button>
+            <button class="btn btn-ghost btn-sm" onclick="markResult(${t.id}, 'BE')" style="color:var(--amber); border-color: var(--amber);">= BE</button>
+          ` : `
+            <button class="btn btn-ghost btn-sm" onclick="clearResult(${t.id})">Resetear</button>
+          `}
+          <button class="btn btn-ghost btn-sm" onclick="deleteTrade(${t.id})" style="margin-left:auto;color:var(--text-muted);">Borrar</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function markResult(id, result) {
+  const journal = loadJournal();
+  const t = journal.find(x => x.id === id);
+  if (!t) return;
+
+  const meta = loadMeta();
+  if (t.result) undoResultEffects(meta, t);
+
+  t.result = result;
+  let dResult = 0;
+  if (result === 'WIN') {
+    dResult = 12;
+    meta.totalWins += 1;
+    meta.winStreak += 1;
+    meta.bestWinStreak = Math.max(meta.bestWinStreak, meta.winStreak);
+  } else if (result === 'LOSS') {
+    dResult = -3;
+    meta.totalLosses += 1;
+    meta.winStreak = 0;
+  } else {
+    meta.totalBE += 1;
+  }
+  t.diamondsResult = dResult;
+  meta.diamonds = Math.max(0, meta.diamonds + dResult);
+  saveMeta(meta);
+  saveJournal(journal);
+
+  if (dResult > 0) burst(`+${dResult} 💎`);
+  else if (dResult < 0) burst(`${dResult} 💎`, true);
+
+  checkAchievements();
+  renderHud();
+  renderJournal();
+}
+
+function undoResultEffects(meta, t) {
+  if (t.result === 'WIN') meta.totalWins = Math.max(0, meta.totalWins - 1);
+  else if (t.result === 'LOSS') meta.totalLosses = Math.max(0, meta.totalLosses - 1);
+  else if (t.result === 'BE') meta.totalBE = Math.max(0, meta.totalBE - 1);
+  if (t.diamondsResult) meta.diamonds = Math.max(0, meta.diamonds - t.diamondsResult);
+}
+
+function clearResult(id) {
+  const journal = loadJournal();
+  const t = journal.find(x => x.id === id);
+  if (!t || !t.result) return;
+  const meta = loadMeta();
+  undoResultEffects(meta, t);
+  t.result = null;
+  t.diamondsResult = null;
+  saveMeta(meta);
+  saveJournal(journal);
+  renderHud();
+  renderJournal();
+}
+
+function deleteTrade(id) {
+  if (!confirm('¿Borrar esta entrada del journal? Los diamantes se reembolsan y libera un slot del día si era hoy.')) return;
+  let journal = loadJournal();
+  const t = journal.find(x => x.id === id);
+  if (t) {
+    const meta = loadMeta();
+    if (t.diamondsEarned) meta.diamonds = Math.max(0, meta.diamonds - t.diamondsEarned);
+    if (t.diamondsResult) meta.diamonds = Math.max(0, meta.diamonds - t.diamondsResult);
+    if (t.type === 'TRADE') {
+      meta.totalTrades = Math.max(0, meta.totalTrades - 1);
+      const tDate = new Date(t.date);
+      const dStr = tDate.getFullYear() + '-' + String(tDate.getMonth()+1).padStart(2,'0') + '-' + String(tDate.getDate()).padStart(2,'0');
+      if (meta.tradesByDate[dStr]) meta.tradesByDate[dStr] = Math.max(0, meta.tradesByDate[dStr] - 1);
+      if (t.emotion === 'CALM') meta.calmTrades = Math.max(0, meta.calmTrades - 1);
+    }
+    if (t.type === 'SKIP') {
+      meta.totalSkips = Math.max(0, meta.totalSkips - 1);
+      if (t.emoSkip) meta.emoSkips = Math.max(0, meta.emoSkips - 1);
+    }
+    if (t.result === 'WIN') meta.totalWins = Math.max(0, meta.totalWins - 1);
+    if (t.result === 'LOSS') meta.totalLosses = Math.max(0, meta.totalLosses - 1);
+    if (t.perfect) meta.perfectSetups = Math.max(0, meta.perfectSetups - 1);
+    saveMeta(meta);
+  }
+  journal = journal.filter(x => x.id !== id);
+  saveJournal(journal);
+  renderHud();
+  renderJournal();
+  recalc();
+}
+
+function renderStats() {
+  const journal = loadJournal().filter(t => t.type === 'TRADE' && t.result);
+  const total = journal.length;
+  const wins = journal.filter(t => t.result === 'WIN').length;
+  const wr = total ? (wins / total * 100) : null;
+  const meta = loadMeta();
+
+  document.getElementById('stat-total').textContent = total;
+  const wrEl = document.getElementById('stat-wr');
+  wrEl.textContent = wr !== null ? wr.toFixed(0) + '%' : '—';
+  wrEl.className = 'stat-value' + (wr === null ? '' : wr >= 50 ? ' green' : ' red');
+
+  document.getElementById('stat-skips').textContent = meta.totalSkips;
+  document.getElementById('stat-diamonds').textContent = meta.diamonds.toLocaleString();
+
+  renderGroupChart('chart-event', journal, 'event', ['180','CC','TB']);
+  renderGroupChart('chart-ma', journal, 'ma', ['8MA','20MA','200MA']);
+  renderEmotionChart('chart-emotion', journal);
+}
+
+function renderGroupChart(canvasId, journal, key, categories) {
+  const ctx = document.getElementById(canvasId);
+  if (charts[canvasId]) charts[canvasId].destroy();
+
+  const data = categories.map(cat => {
+    const subset = journal.filter(t => t[key] === cat);
+    if (!subset.length) return { wr: 0, n: 0 };
+    const wins = subset.filter(t => t.result === 'WIN').length;
+    return { wr: (wins / subset.length * 100), n: subset.length };
+  });
+
+  charts[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: categories.map((c,i) => `${c} (${data[i].n})`),
+      datasets: [{
+        data: data.map(d => d.wr),
+        backgroundColor: data.map(d => d.n === 0 ? '#1a2540' : d.wr >= 50 ? '#34D399' : '#F87171'),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => `Win rate: ${ctx.parsed.x.toFixed(0)}%` },
+        backgroundColor: '#0d1424', titleColor: '#E8F1FA', bodyColor: '#89D2EC',
+        borderColor: '#1a2540', borderWidth: 1,
+      }},
+      scales: {
+        x: { min: 0, max: 100, ticks: { callback: v => v + '%', color: '#5B6B85' }, grid: { color: '#1a2540' } },
+        y: { ticks: { font: { size: 11, family: 'JetBrains Mono' }, color: '#94A6BD' }, grid: { color: '#1a2540' } }
+      },
+      maintainAspectRatio: false,
+    }
+  });
+}
+
+function renderEmotionChart(canvasId, journal) {
+  const ctx = document.getElementById(canvasId);
+  if (charts[canvasId]) charts[canvasId].destroy();
+  const cats = [
+    { key: 'CALM',  label: '🧘 Calmado' },
+    { key: 'TIRED', label: '😴 Cansado' },
+  ];
+  const data = cats.map(c => {
+    const subset = journal.filter(t => t.emotion === c.key);
+    if (!subset.length) return { wr: 0, n: 0 };
+    const wins = subset.filter(t => t.result === 'WIN').length;
+    return { wr: (wins / subset.length * 100), n: subset.length };
+  });
+
+  charts[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: cats.map((c,i) => `${c.label} (${data[i].n})`),
+      datasets: [{
+        data: data.map(d => d.wr),
+        backgroundColor: data.map(d => d.n === 0 ? '#1a2540' : d.wr >= 50 ? '#34D399' : '#F87171'),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => `Win rate: ${ctx.parsed.x.toFixed(0)}%` },
+        backgroundColor: '#0d1424', titleColor: '#E8F1FA', bodyColor: '#89D2EC',
+        borderColor: '#1a2540', borderWidth: 1,
+      }},
+      scales: {
+        x: { min: 0, max: 100, ticks: { callback: v => v + '%', color: '#5B6B85' }, grid: { color: '#1a2540' } },
+        y: { ticks: { font: { size: 11, family: 'JetBrains Mono' }, color: '#94A6BD' }, grid: { color: '#1a2540' } }
+      },
+      maintainAspectRatio: false,
+    }
+  });
+}
+
+function renderAchievements() {
+  const meta = loadMeta();
+  const grid = document.getElementById('ach-grid');
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = meta.unlocked.includes(a.id);
+    return `
+      <div class="ach ${unlocked ? 'unlocked' : 'locked'}">
+        <div class="ach-icon">${a.icon}</div>
+        <div class="ach-name">${a.name}</div>
+        <div class="ach-desc">${a.desc}</div>
+        <div class="ach-reward">+${a.reward} 💎</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function checkAchievements() {
+  const meta = loadMeta();
+  let any = false;
+  ACHIEVEMENTS.forEach(a => {
+    if (!meta.unlocked.includes(a.id) && a.check(meta)) {
+      meta.unlocked.push(a.id);
+      meta.diamonds += a.reward;
+      any = true;
+      setTimeout(() => toast(`${a.icon} ¡Logro! ${a.name} (+${a.reward} 💎)`), 400);
+    }
+  });
+  if (any) saveMeta(meta);
+}
+
+function renderHud() {
+  const meta = loadMeta();
+  document.getElementById('diamond-count').textContent = meta.diamonds.toLocaleString();
+  document.getElementById('win-streak').textContent = meta.winStreak;
+  document.getElementById('disc-streak').textContent = meta.discStreak;
+
+  const todayCount = meta.tradesByDate[todayStr()] || 0;
+  const slots = document.querySelectorAll('#day-slots .slot');
+  slots.forEach((s, i) => {
+    s.classList.remove('filled', 'locked');
+    if (i < todayCount) {
+      s.classList.add(todayCount >= DAILY_LIMIT ? 'locked' : 'filled');
+    }
+  });
+
+  const { current, next } = getRank(meta.diamonds);
+  const rankEl = document.getElementById('rank-display');
+  rankEl.textContent = `${current.icon} ${current.name}`;
+  rankEl.style.color = current.color;
+
+  const xpFill = document.getElementById('xp-fill');
+  const xpText = document.getElementById('xp-text');
+  if (next) {
+    const range = next.min - current.min;
+    const progress = meta.diamonds - current.min;
+    const pct = Math.min(100, (progress / range) * 100);
+    xpFill.style.width = pct + '%';
+    xpText.textContent = `${progress} / ${range} al rango ${next.name}`;
+  } else {
+    xpFill.style.width = '100%';
+    xpText.textContent = 'RANGO MÁXIMO ALCANZADO';
+  }
+}
+
+function burst(text, neg = false) {
+  const el = document.createElement('div');
+  el.className = 'diamond-burst';
+  el.textContent = text;
+  el.style.color = neg ? 'var(--red)' : 'var(--diamond)';
+  el.style.left = (window.innerWidth / 2 - 30) + 'px';
+  el.style.top = (window.innerHeight / 2) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+function toast(text) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// init
+loadState();
+renderHud();
+recalc();
+
+(function checkYesterday() {
+  const meta = loadMeta();
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth()+1).padStart(2,'0') + '-' + String(yesterday.getDate()).padStart(2,'0');
+  const yCount = meta.tradesByDate[yStr] || 0;
+  if (yCount === 1 && !meta.rewardedDays.includes(yStr + '-single')) {
+    meta.singleTradeDays += 1;
+    meta.rewardedDays.push(yStr + '-single');
+    meta.diamonds += 8;
+    saveMeta(meta);
+    setTimeout(() => toast('🌅 Ayer solo tomaste 1 trade · Monje del Mercado +8 💎'), 600);
+    checkAchievements();
+    renderHud();
+  }
+})();
+</script>
+
+</body>
+</html>
